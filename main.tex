@@ -171,7 +171,7 @@ By setting some $m$ of those $n^2-n$ parameters to zero: $p_{k_1} = p_{k_2} = \l
 %Thus, HMM allows for more customization of the migration operator.
 
 Because tuning such large space of parameters is very costly, we propose a reduced parametrization of HMM.
-We assume that the probability of migration (directed edge) between given two \textbf{metaheuristics} is the same across the whole model, i.e. any two populations $P_i, P_j$ optimized by algorithms $H_k, H_l$ respectively, have the same probability of migration from $P_i$ to $P_j$ (see Figure~\ref{fig:2-4setup}).
+We assume that the probability of migration (directed edge) between given two \textbf{metaheuristics} is the same across the model, i.e. any two populations $P_i, P_j$ optimized by algorithms $H_k, H_l$ respectively, have the same probability of migration from $P_i$ to $P_j$ (see Figure~\ref{fig:2-4setup}).
 This depends the number of parameters only on the number of distinct metaheuristics.
 
 %We propose a setup with two metaheuristics running in parallel and allow for migration of the best solutions every generation with some probability $p_k$.
@@ -297,12 +297,12 @@ The migration algorithm which we use is based on the ``best--replace--worst'' id
 
 \subsection{Methodology}
 
-Since we treat each of the islands as a parallel computational unit, we assign a fixed budget of $20,000$ function evaluations ($FE_{\mbox{max}}$) for each of them.
+Since we treat each of the islands as a parallel computational unit, we assign a fixed budget of $20,000$ function evaluations for each of them.
 We stop the execution if any of the following conditions are met:
 \begin{enumerate}
     \item A solution within $10^{-8}$ from the global optimum is found
     \item The function evaluation budget is exhausted
-    \item Each population converges to a non-optimal point, i.e.\ the difference between the best and worst solution is smaller than $10^{-20}$
+    \item A population converges to a non-optimal point, i.e.\ the difference between the best and worst solution in the population is smaller than $10^{-12}$
 \end{enumerate}
 
 We repeat the experiment $1,000$ times, obtaining a pool of independent runs, each of those could either be successful (condition 1 above) or unsuccessful (condition 2 or 3).
@@ -310,11 +310,12 @@ Each run can either a) find an optimal solution (successful run), b) exhaust the
 
 \subsection{Uniform migration experiment}
 This section presents the core idea and methodology used in this paper, as well as serve as an introduction to our subsequent exhaustive experiment.
-In this and the following experiments we will observe the behaviour of metaheuristics with respect to migration operator in terms of running time distributions and expected running time (expected number of function evaluations to global minima convergence).
+In this and the following experiments we will observe the behaviour of selected metaheuristics with respect to the migration operator.
+We do not focus on the convergence rate, instead we analyze the running time distributions and expected running time (expected number of function evaluations to global minima convergence).
 
-Let consider a two--island setup, where each population is evolved using two distinguished instaces of Differential Evolution algorithm running synchronously (denoted as DE$_1$ and DE$_2$).
-To get a better image of the effect of migration we will not actively observe the island running algorithm DE$_1$, i.e. the stopping criteria and the number of function evaluations are considered and measured only locally for DE$_2$.
-We will iterate over the probability of migration from algorithm DE$_1$ to DE$_2$ (parameter $p_1$), and consider two cases for the opposite (parameter $p_2$): 
+Let consider a two--island setup, where each population is evolved using two distinguished instaces of Differential Evolution algorithm running synchronously (denoted as H$_1$ and H$_2$).
+To get a better understanding of the effect of migration we will not actively observe the island running algorithm DE$_1$, i.e. the stopping criteria and the number of function evaluations are considered and measured only locally for DE$_2$.
+We will iterate over the probability of migration from algorithm H$_1$ to H$_2$ (parameter $p_1$), and consider two cases for the opposite (parameter $p_2$): 
 \begin{enumerate}
     \item $p_2$ is always equal to 0 -- island DE$_2$ does not send any solutions to DE$_1$
     \item $p_2$ is equal to $p_1$ -- island DE$_2$ will send solutions to DE$_1$ with the same probability
@@ -328,71 +329,143 @@ Figure~\ref{graph:twoisl} presents the experimental setup on a diagram.
     \tikzstyle{edge} = [draw,thick,->]
     \tikzstyle{edge2} = [draw,thick,-]
 
-    \node[vertex, dashed] (a) at (0, 0) {DE$_1$};
-    \node[vertex] (b) at (1, 0) {DE$_{2}$};
+    \node[vertex, dashed] (a) at (0, 0) {H$_1$};
+    \node[vertex] (b) at (1, 0) {H$_{2}$};
 
 
-    \node[text width=4cm] at (2.1, 0.0) {%$H = \{\mbox{DE}, \mbox{CMAES}\}$\\
-        $p_1 = \{0.0, 0.1, \ldots , 0.9, 1.0\}$\\
-        $p_2 = \{0.0, p_1\}$};
+    \node[text width=4.3cm] at (2.1, 0.0) {%$H = \{\mbox{DE}, \mbox{CMAES}\}$\\
+        $p_1 \in \{0.0, 0.1, \ldots , 0.9, 1.0\}$\\
+        $p_2 = 0.0 \mbox{ or } p_2 = p_1$\\
+        $H_1,H_2 \in \{\mbox{CMAES},\mbox{DE},\mbox{PSO}\}$};
 
     \path[edge] (a) to[bend left=25] node[weight]{$p_1$} (b) ;
     \path[edge] (b) to[bend left=25] node[weight]{$p_2$} (a);
 
     \end{tikzpicture}
     \label{graph:twoisl}
-    \caption{Two--island setup with both algorithms running synchronously and migrating with probabilities $p_1$ and $p_2$. We observe only the results of DE$_2$.}
+    \caption{Two--island setup with both algorithms running synchronously and migrating with probabilities $p_1$ and $p_2$. We observe only the results of H$_2$.}
 
 \end{figure}
-Figure~\ref{fig:single_jde_jde_9} presents the distribution of $1,000$ running times approximated by a kernel density estimation using Gaussian kernel.
+In the following parts of this section we will focus on investigate the particular properties of several metaheurstics 
 
+\subsubsection{Differential Evolution (DE)}
+
+%\begin{table*}
+%    \label{table:pkvalues}
+%    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+%        \hline
+%        Seeder & $f_1$   & $f_4$ & $f_6$ & $f_7$ & $f_9$ & $f_{12}$ & $f_{13}$ & $f_{15}$ & $f_{16}$ & $f_{20}$ \\\hline
+%        DE     & B (1.0) & B (1.0) & B (1.0) &  &  &  &  &  &  &  \\
+%        CMAES  & N       &  &  &  &  &  &  &  &  &  \\
+%        PSO    & B (1.0) &  &  &  &  &  &  &  &  &  \\
+%    \end{tabular}
+%    \caption{Cooperation for DE}
+%\end{table*}
+
+To present the key ideas of our methodology on an example, let us take a closer look on a setup with the algorithm DE optimizing the problem $f_7$, while being sent solutions from DE, CMAES and PSO.
+First, let us look at the distribution of running times of single and independent runs of CMAES, DE and PSO on problem $f_7$ (see Figure~\ref{fig:distr_cmaes_jde_7}).
+It is quite clear that on this particular problem, CMAES converges to global minimum much faster than DE, while PSO is significantly slower than the remaining two algorithms.
+Let us consider $H_1 = \mbox{DE}, H_2 = \mbox{DE}$, and analyze the change of the distribution of $H_2$ over varying parameters $p_1$ and $p_2$.
+Figure~\ref{fig:single_jde_jde_7} presents the distribution of $10,000$ resampled running times (approximated by a Gaussian kernel density estimation) as shown in Algorithm~\ref{alg:resample}.
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\columnwidth]{figures/single_jde_jde_9.png}
-  \label{fig:single_jde_jde_9}
+  \includegraphics[width=\columnwidth]{figures/single_jde_jde_cec_7.png}
+  \label{fig:single_jde_jde_7}
  \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{12}$.}
 \end{figure}
 
-For $p_2=0$ (DE$_2$ does not send any feedback to DE$_1$) the migration has a positive effect -- by allowing for migration with probability $p_1 = 0.1$ the mean shifts from $3,360$ function evaluations to $3,100$.
-It is worth noting that the difference between cases $p_1=0.1$ and $p_1 > 0.1$ are considerably less significant when compared to the ``feedback'' scenario, where $p_2=p_1$.
-For $p_1=p_2=0.1$ the mean is shifted to $2,900$ and continues up until $p_1=p_2=1.0$ with mean being equal to a little over $1,560$.
-This proves that migration, even when observed strictly from the perspective of the ``receiver'', is not a one--directional process.
-Sending current good solutions to the neighboring populations can result in future migration of even superior solutions.
+Two plots at the top present the case where $p_2 = 0$ (left), and $p_1 = p_2$ (right), describing the one--directional and two--directional migrations respectively (occasionally we will refer to latter as the \emph{feedback} case).
+%For one--directional case, the migration has a positive effect, lowering the expected running time with the higher value    $p_1$ increases until migration every single generation ($p_1 = 1.0$).
+By allowing for migration with probability $p_1 = 0.1$ the mean shifts from $3,360$ to $3,100$ function evaluations, yet after the initial speedup the distribution and the expected running time change very little once $p_1 >= 0.3$.
+In the feedback scenario, not only we notice a significant speedup compared to one--directional case, but we observe a continuing trend with the improving expected running time until $p_1 = 1$ (migration every generation).
+This shows that migration, even when observed strictly from the perspective of the ``receiver'', is not a one--directional process, and can be reinforced by mutual information exchange.
 
-Let us modify our experiment and replace the ``sending'' island DE$_1$ with an instance of CMAES.
-Both algorithms are run synchronously, and as previously we will observe only the distribution of convergence times of population evolved by D$_2$ (parameters $p_1$ and $p_2$ are modified as before).
-
-Before we continue, let us look at the distribution of convergence times of single and independent runs of CMAES and DE on problem $f_9$ (see Figure~\ref{fig:distr_cmaes_jde_9}).
+Let us modify our experiment and instantiate the ``sending'' island with the algorithm CMAES ($H_1$).
+Both algorithms are run synchronously and as before we will monitor only the distribution and stopping criteria for population evolved by an instance of DE ($H_2$).
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\columnwidth]{figures/single_distr_cmaes_jde_9.png}
+    \includegraphics[width=\columnwidth]{figures/single_distr_7.png}
     \label{fig:distr_cmaes_jde_9}
     \caption{Distribution of running times for algorithms CMA-ES and DE on problem $f_9$.}
 \end{figure}
-It is quite clear that on this particular problem, CMAES converges to global minimum much faster than DE.
-Not surprisingly, when we allow for injection from CMAES to DE (see Figure~\ref{fig:single_cmaes_jde_9}), i.e. $p_1=0.1$ and $p_2=0$, we notice a significant improvement in the running time distribution (mean shift from $3,360$ to $2,120$).
+Not surprisingly, for one--directional injection from CMAES to DE (see Figure~\ref{fig:single_cmaes_jde_9}), we observe a significant improvement in the running time distribution (mean shift from $3,360$ to $2,120$).
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\columnwidth]{figures/single_cmaes_jde_9.png}
-  \label{fig:single_jde_jde_9}
+  \includegraphics[width=\columnwidth]{figures/single_cmaes_jde_cec_7.png}
+  \label{fig:single_jde_jde_7}
  \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{12}$.}
 \end{figure}
-As before, the probability of migration in one--directional setup starts to reach its limit as soon as $p_1 > 0.1$.
-When $p_2 = p_1$ however, we notice a gradual improvement of running times distribution up to $p_1=p_2=1.0$ (mean shift to $1,520$).
-It is worth noting that even though CMAES was previously established as ``faster'' algorithm for this problem, the feedback from the ``slower'' DE$_2$ was still beneficial.
+As before, the probability of migration in one--directional setup starts to reach its limit as soon as $p_1 > 0.3$, however, when $p_2 = p_1$, we notice a gradual improvement of expected running time until $p_1=p_2=1.0$.
+It is worth noting that even though we had previously established CMAES as being ``faster'' algorithm on problem $f_9$, the feedback from the ``slower'' DE was overall beneficial.
 
-This result motivates us to consider not only ``fully--connected'' topologies -- even in cases where one might think that better-suited algorithms might not benefit from the solutions from ``slower'' algorithms -- but also explore the space of asymmetrical migration parameters, i.e. $p_1 \neq p_2$.
+Finally, let us observe the scenario where $H_1 = \mbox{PSO}$.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/single_pso_jde_cec_7.png}
+  \label{fig:single_pso_jde_7}
+ \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{12}$.}
+\end{figure}
+Since PSO has been shown to be much slower on this problem, the difference in the expected runtime for $p_2=0$ over varying $p_1$ is almost non--existent, while for $p_1=p_2$ we see a gradual ``recovery'' from $3,500$ to $2000$ function evaluations, which was the best expected running time of DE/DE setup.
+
+This leads us to the following observations:
+\begin{enumerate}
+    \item One--directional migration from $H_1$ can overall improve the performance of the $H_2$ (receiving algorithm) when the algorithm on $H_1$ is faster.
+    \item Feedback to the ``better'' algorithms has an overall benefit
+    \item Sending information to the ``worse'' algorithm, can 
+\end{enumerate}
+
+In the remainder of this section, and the following sections we will provide a similar analysis over several different algorithms for $H_1$, as well as larger number of problems.
+
+For $H_1 =\mbox{DE}, H_2=\mbox{DE}$ and problems $f_1, f_4, f_6, f_7, f_9$ and $f_{13}$, we observe a very similar pattern: any migration is beneficial, with feedback significantly improving the overall running time with the increasing probability of migration.
+Situation changes for more difficult multi--modal problems -- $f_{12}, f_{15}$ and $f_{16}$.
+For problems $f_{12}$ (Rastrigin) and $f_{16}$ (Katsuura) migration with feedback is still more beneficial yet full--migration is not the best strategy, while for problem $f_{15}$ (Schwefel) it is the one--directional case that achieves the lowest expected running time.
+SHOW SOME PLOTS HERE
+
+The case $H_1 = \mbox{PSO}, H_2=\mbox{DE}$ exhibits similar patterns to the previous case, except that absolute expected running times are much lower due to PSO being significantly slower on each of those problems.
+For that reason the migration in one--directional setup has much a lesser effect on the running time SEE(pso jde cec 1).
+However, when $p_2 = p_1$ we notice that the running time of DE ``recovers'', even
+Another surprising 
+Another implication of 
+Another important fact is thatIt is worth noting yet another benefit of the feedback: 
+
+%This result motivates us to consider not only ``fully--connected'' topologies -- even in cases where one might think that better-suited algorithms might not benefit from the solutions from ``slower'' algorithms -- but also explore the space of asymmetrical migration parameters, i.e. $p_1 \neq p_2$.
 
 \subsection{Varied migration experiment}
 
-This section covers the methodology and the results of our main experiment, which extends the previous setup by allowing parameters $p_1$ and $p_2$ to have distinct values from $\{0.0, 0.1, \ldots, 1.0\}$.
-Additionally, we will monitor the stopping criteria and number of function evaluations at the scope of the whole archipelago.
+This section covers the methodology and the results of our main experiment, which extends the previous setup by allowing parameters $p_1$ and $p_2$ to have distinct values from $\{0.0, 0.1, \ldots, 1.0\}$, and test our setup on six different pairs of algorithms.
+Additionally, we will monitor the stopping criteria and the number of function evaluations at the scope of the archipelago.
+
+\begin{figure}[ht!]
+    \begin{tikzpicture}[scale=2.5]
+    \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=24pt]
+    \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
+    \tikzstyle{weight} = [fill=white]
+    \tikzstyle{edge} = [draw,thick,->]
+    \tikzstyle{edge2} = [draw,thick,-]
+
+    \node[vertex] (a) at (0, 0) {$H_1$};
+    \node[vertex] (b) at (1, 0) {$H_2$};
+
+
+    \node[text width=4.4cm] at (2.1, 0.0) {%$H = \{\mbox{DE}, \mbox{CMAES}\}$\\
+        $\;\;\: p_1,p_2 \in \{0.0, 0.1, \ldots, 0.9, 1.0\}$\\
+        %$p_2 = \{0.0, 0.1, \ldots, 0.9, 1.0\}$\\
+        $H_1,H_2 \in \{\mbox{CMAES},\mbox{DE},\mbox{PSO}\}$};
+
+    \path[edge] (a) to[bend left=25] node[weight]{$p_1$} (b) ;
+    \path[edge] (b) to[bend left=25] node[weight]{$p_2$} (a);
+
+    \end{tikzpicture}
+    \label{graph:twoisl}
+    \caption{Two--island setup with heterogeneous algorithms and non--symmetrical migration probabilities.}
+
+\end{figure}
 %One might be tempted to continue with the ``local'' analysis for non--uniform migration probabilities and then extend this reasoning to a global scale -- if both islands are synchronized, and we terminate the execution as soon as \emph{any} algorithm finds the solution within global optimum, it is then an equivalent process to sampling a run from each individual island distributions $A$, $B$, and assume the number of total function evaluations (at the archipelago scope) as: FE$ = \mbox{min}(\Call{Sample}{A}, \Call{Sample}{B})$.
 %We decide against it as the process get more complicated on difficult multi--modal and introduce the restarts mechanism.
 %For that reason, we will monitor the stopping criteria and the running time distribution across the whole setup, and use the 
-Since we will extend our test to the whole range of problems, some of which being multi--modal, we expect the stopping criteria to detect the condition of convergence to suboptimal solution.
-In such a case in a real--world scenario, a practitioner would proceed the optimization by restarting the algorithm as long as the budget is not exhausted.
-In order to compensate for this, we employ a boostrap resampling technique as presented in Algorithm~\ref{alg:resample}.
+Since we extend our experiment to a wider range of problems that vary in difficulty, we expect the stopping criteria to detect the condition of convergence to suboptimal solution.
+In such case, a practitioner would proceed the optimization by restarting the algorithm as long as the budget is not yet exhausted.
+We embed this idea in our setup by using a boostrap resampling technique, as presented in Algorithm~\ref{alg:resample}.
 
 %In real budget--constrained scenario, a practitioner would try to detect the third case by analyzing the convergence rate and diversity in the population and restart given algorithm with random initial conditions as long as the budget permits it.
 %We allow for such operation, by employing a resampling technique, using which we construct a ``trial'', i.e., a sequence of runs among which the solution is found, or the budget is definitely exhaused (see Alg.~\ref{alg:resample}).
@@ -408,7 +481,7 @@ In order to compensate for this, we employ a boostrap resampling technique as pr
         \State $f, n \gets \Call{SampleRun}{R}$%\Comment{Objective value $f$ and number of function evaluations $n$}
         \State $B' \gets \mbox{max}(B' + n, B)$
         \State $f' \gets \mbox{min}(f', f)$
-        \DoWhile{$B' < B \And (f' - f_{min}) > 10^{-8}$}\Comment{Stop building a trial after budget is exhausted or found optimal solution}
+        \DoWhile{$B' < B \mbox{ and } (f' - f_{opt}) > 10^{-8}$}\Comment{Stop building a trial after budget is exhausted or found optimal solution}
     \EndFunction \mbox{ and }\Return $f', B'$
 \end{algorithmic}
 \end{algorithm}
@@ -416,84 +489,77 @@ In order to compensate for this, we employ a boostrap resampling technique as pr
 To assess the performance of our setup we use the measure of expected number of function evaluations as proposed by Auger and Hansen in~\cite{Hansen05performanceevaluation}:
 
 \begin{equation}
-    \widehat{\mathbb{E}(T_H)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s}}\right)FE_{\mbox{max}} + \widehat{\mathbb{E}(T_H^s)},
+    \widehat{\mathbb{E}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s}}\right) B + \widehat{\mathbb{E}(T^s)},
 \end{equation}
-where $FE_{\mbox{max}}$ is the allocated budget, $\widehat{p^s}$ is the estimated probability of successful run and $\widehat{\mathbb{E}(T_H^s)}$ is the estimated number of function evaluations for successful runs of hybrid metaheuristics setup $H$.
+where $B$ is the allocated budget, $\widehat{p_s}$ is the estimated probability of successful run and $\widehat{\mathbb{E}(T^s)}$ is the estimated number of function evaluations of successful runs.
 
 
 \subsection{Taxonomy of expected running time patterns}
 
-When analyzing the results of our experiment we can clearly see a distinction between the unimodal and multi--modal problems.
-Figure~\ref{fig:jde_pso_6} presents the most typical running time patterns.% for problems $f_1$, $f_4$, $f_6$, $f_7$ and $f_9$.
+When analyzing the results of our experiment we can clearly see a distinction between the unimodal ($f_1$ and $f_4$) and ``easy'' multi--modal problems ($f_6, f_7$ and $f_9$) when compared with difficult multi--modal problems ($f_{12}, f_{15}, f_{16}$ and $f_{20}$).
 \begin{figure}[ht!]
 \centering
-\subfigure[t][foo]{
+\subfigure[t][Migration plays little role, and is harmful after certain threshold]{
     \label{tax:tax1}
     \includegraphics[width=0.45\columnwidth]{figures/taxonomy_cmaes_cmaes_cec_4.png}
 }\quad
-\subfigure[t][bar]{
+\subfigure[t][Migration has a gradual beneficial effect]{
     \label{tax:tax2}
     \includegraphics[width=0.45\columnwidth]{figures/taxonomy_jde_jde_cec_4.png}
 }\quad
-\subfigure[t][bar]{
+\subfigure[t][Migration starts to be beneficial after certain threshold]{
     \label{tax:tax3}
     \includegraphics[width=0.45\columnwidth]{figures/taxonomy_cmaes_jde_cec_1.png}
 }\quad
-\subfigure[t][bar]{
+\subfigure[t][Migration has beneficial effect for only one parameter]{
     \label{tax:tax4}
     \includegraphics[width=0.45\columnwidth]{figures/taxonomy_cmaes_jde_cec_6.png}
 }
-\caption{fff f} %Expected running time behaviour of 2--m/2--i setup on $f_{4}$ problem.}
+\caption{Most frequent pattern of expected running times for problems $f_1$ -- $f_9$. Value $p$ is the minimal $E(T)$ within the parameter space of $p_1$ and $p_2$, while $k$ is a scaling factor between $p$ and the maximum of $E(T)$.} %Expected running time behaviour of 2--m/2--i setup on $f_{4}$ problem.}
 \end{figure}
+Figure~\ref{fig:jde_pso_6} presents the most typical expected running time (ERT) patterns for the unimodal, and ``easy'' multi--modal problems.
+Since the exact number of function evaluations vary depending on the problem and the pair of algorithms, we present each plot as a linear progression of ERT dependent on the migration parameters from the minimal value $m$, to its maximal value represented as $m$ times a scaling factor $k$, where $k = \frac{E(T)_{max}}{E(T)_{min}}$.
+In table~\ref{table:pkvalues} we provide the values for $m$ and $k$ for each pair of algorithms.
+An interesting metric might be the area in the space of parameters $p_1$ and $p_2$ where $E(T)$ does not exceed $10\%$ from the $E(T)_{min}$, e.g. area where algorithms are expected to perform no worse than $10\%$ from the best parametrization available.
+This can be computed as follows:
+$$
+m \cdot 1.1 = m \cdot k \cdot s \Rightarrow s = \frac{1.1}{k},
+$$
+e.g., for $k=2.0$ we have $s=0.55$, thus we can expect the area of interest to lie between the contours $m \cdot0.4 k$ and $m \cdot 0.6 k$.
+
+%\begin{table*}
+%    \label{table:pkvalues}
+%    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+%        %\cline{2-3}
+%        \hline
+%        \multirow{3}{*}{Problems} & \multicolumn{12}{c}{$H_1$/$H_2$ on pattern~\ref{tax:tax2}} \\\hline
+%         & \multicolumn{2}{c|}{CMAES/CMAES} & \multicolumn{2}{c|}{DE/DE} & \multicolumn{2}{c|}{PSO/PSO} & \multicolumn{2}{c|}{CMAES/DE} & \multicolumn{2}{c|}{DE/PSO} & \multicolumn{2}{c|}{CMAES/PSO} \\\hline
+%                &   p      & k    &   p      & k    &     p      & k    &   p      & k    &    p      & k    &    p      & k \\\hline
+%            1   &   1256.0 & 1.12 &   1243.0 & 1.07 &     2292.0 & 1.08 &   1293.0 & 1.51 &    2448.0 & 1.59 &    3797.0 & 3.17 \\
+%            4   &   2048.0 & 1.37 &   2056.0 & 1.08 &     4118.0 & 1.03 &   2414.0 & 1.68 &    6666.0 & 2.14 &        inf & nan \\
+%            6   &   1490.0 & 1.17 &   1368.0 & 1.27 &     2754.0 & 1.19 &   1583.0 & 1.78 &    3431.0 & 1.77 &     9378.0 & 3.1 \\
+%            7   &   3958.0 & 2.11 &   3354.0 & 1.45 &     6454.0 & 1.73 &   4114.0 & 1.58 &    7273.0 & 1.84 &   10374.0 & 2.94 \\
+%            9   &   3233.0 & 1.67 &   3054.0 & 1.33 &     6043.0 & 1.56 &   3486.0 & 1.78 &     6823.0 & 1.9 &   11552.0 & 2.78 \\
+%            12  &   2872.0 & 1.67 &   2542.0 & 1.34 &     5972.0 & 1.71 &   3355.0 & 1.35 &     6932.0 & 1.4 &   13396.0 & 1.42 \\
+%            13  &   3262.0 & 1.81 &   2681.0 & 1.33 &     4727.0 & 2.15 &   2783.0 & 1.42 &    4947.0 & 1.68 &    6734.0 & 2.42 \\
+%            15  &   8573.0 & 2.79 &  11229.0 & 2.38 &    26044.0 & 2.41 &  18511.0 & 1.57 &    36140.0 & 1.4 &   50180.0 & 1.75 \\
+%            16  &    7208.0 & inf &   9112.0 & 7.35 &   21759.0 & 26.49 &   39029.0& 2.6 &  33553.0 & 11.48 &   150652.0 & inf \\
+%            20  &  351187.0 & inf &  27360.0 & 2.23 &  98133.0 & 193.94 &  20308.0 & 3.09 &   45173.0 & 3.01 &  92926.0 & 12.59 \\
+%        %\hline
+%    \end{tabular}
+%\end{table*}
+
 
 \begin{table*}
-    \begin{tabular}{c|c|c|c|c|c|c|}
-        %\cline{2-3}
-        %\hline
-        & \multicolumn{6}{c}{$H_1$/$H_2$ on pattern~\ref{tax:tax2}} \\\hline
-        Problems & CMAES/CMAES        & DE/DE              & PSO/PSO               & CMAES/DE            & DE/PSO              & CMAES/PSO \\\hline
-        $f_1$    & $p=1256$, $k=1.12$ & $p=1293$, $k=1.51$ & $p=3797$,  $k=3.17$   & $p=1243$, $k=1.07$  & $p=2448$, $k=$  & $p=2292$, $k=$\\
-        $f_4$    & $p=2048$, $k=1.37$ & $p=2414$, $k=1.68$ & -                     & $p=2056$, $k=1.08$  & -               & -             \\
-        $f_6$    & $p=1490$, $k=1.17$ & $p=1583$, $k=1.78$ & $p=9378$,  $k=3.10$   & $p=1368$, $k=1.27$  & $p=3431$, $k=$  & $p=2754$, $k=$\\
-        $f_7$    & $p=3958$, $k=2.11$ & $p=4114$, $k=1.58$ & $p=10374$, $k=2.94$   & $p=3354$, $k=1.45$  & $p=7273$, $k=$  & $p=6454$, $k=$\\
-        $f_9$    & $p=3233$, $k=1.67$ & $p=3486$, $k=1.78$ & $p=11552$, $k=2.78$   & $p=3054$, $k=1.33$  & $p=6823$, $k=$  & $p=6043$, $k=$\\
-        $f_{12}$ &                    & -                  & $p=13396$, $k=1.42$   & -                   & -               & $p=5972$, $k=$\\
-        $f_{13}$ &                    & $p=2784$, $k=1.42$ & $p=6734$,  $k=2.42$   & $p=2681$, $k=1.33$  & $p=4947$, $k=$  & $p=4727$, $k=$\\
-        $f_{15}$ &                    & $p=2784$, $k=1.42$ & $p=6734$,  $k=2.42$   & $p=2681$, $k=1.33$  & $p=4947$, $k=$  & $p=4727$, $k=$\\
-        $f_{20}$ &                    & $p=2784$, $k=1.42$ & $p=6734$,  $k=2.42$   & $p=2681$, $k=1.33$  & $p=4947$, $k=$  & $p=4727$, $k=$\\
-        %\hline
+    \label{table:pkvalues}
+    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+        \hline
+        Seeder & $f_1$      & $f_4$ & $f_6$ & $f_7$ & $f_9$ & $f_{12}$ & $f_{13}$ & $f_{15}$ & $f_{16}$ & $f_{20}$ \\\hline
+        CMAES  & N           & $f_4$ & $f_6$ & $f_7$ & $f_9$ & $f_{12}$ & $f_{13}$ & $f_{15}$ & $f_{16}$ & $f_{20}$ \\
+        DE     & O (0.3)     & $f_4$ & $f_6$ & $f_7$ & $f_9$ & $f_{12}$ & $f_{13}$ & $f_{15}$ & $f_{16}$ & $f_{20}$ \\
+        PSO    & B (1.0)     & $f_4$ & $f_6$ & $f_7$ & $f_9$ & $f_{12}$ & $f_{13}$ & $f_{15}$ & $f_{16}$ & $f_{20}$ \\
     \end{tabular}
 \end{table*}
-
-\begin{table}
-    \begin{tabular}{c|c|c}
-        %\cline{2-3}
-        %\hline
-        & \multicolumn{2}{c}{$H_1$/$H_2$ on pattern~\ref{tax:tax1}} \\\hline
-        Problems & CMAES/CMAES         & JDE/PSO \\\hline
-        $f_1$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_4$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_6$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_7$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_9$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        %\hline
-    \end{tabular}
-\end{table}
-
-\begin{table}
-    \begin{tabular}{c|c|c}
-        %\cline{2-3}
-        %\hline
-        & \multicolumn{2}{c}{$H_1$/$H_2$ on pattern~\ref{tax:tax1}} \\\hline
-        Problems & CMAES/CMAES         & JDE/PSO \\\hline
-        $f_1$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_4$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_6$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_7$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        $f_9$    & $p=12344$, $k=2.44$ & $p=12344$, $k=2.44$ \\
-        %\hline
-    \end{tabular}
-\end{table}
 
 \begin{figure*}[htp]
   \centering
