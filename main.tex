@@ -309,18 +309,19 @@ We repeat the experiment $1,000$ times, obtaining a pool of independent runs, ea
 Each run can either a) find an optimal solution (successful run), b) exhaust the budget before arriving at a solution or c) converge to a local optimum (unsuccessful runs).
 
 \subsection{Uniform migration experiment}
-This section presents the core idea and methodology used in this paper, as well as serve as an introduction to our subsequent exhaustive experiment.
-In this and the following experiments we will observe the behaviour of selected metaheuristics with respect to the migration operator.
-We do not focus on the convergence rate, instead we analyze the running time distributions and expected running time (expected number of function evaluations to global minima convergence).
+This section presents the core idea and methodology used in this research, as well as serve as an introduction to our subsequent exhaustive experiment.
+In this and the following sections we observe the behaviour of selected metaheuristics with respect to varying parameters of the migration operator.
+We analyze the change in the distribution of individual runs over multiple repetitions of the experiment and correlate the expected number of function evaluations until convergence to global minima, to which we refer as the Expected Running Time (ERT), with the migration parameters.
 
-Let consider a two--island setup, where each population is evolved using two distinguished instaces of Differential Evolution algorithm running synchronously (denoted as H$_1$ and H$_2$).
-To get a better understanding of the effect of migration we will not actively observe the island running algorithm DE$_1$, i.e. the stopping criteria and the number of function evaluations are considered and measured only locally for DE$_2$.
-We will iterate over the probability of migration from algorithm H$_1$ to H$_2$ (parameter $p_1$), and consider two cases for the opposite (parameter $p_2$): 
+In this section we consider a two--island setup, where each population is evolved using different algorithms (denoted as $H_1$ and $H_2$), and exchanging solutions with probabilities $p_1$ and $p_2$ (probability of migration from $H_1$ to $H_2$ and $H_2$ to $H_1$ respectively) after every generation.
+To get a finer understanding of the effect of migration on individual algorithm, we do not observe the island running algorithm $H_1$ and focus entirely on the island $H_2$, i.e. the stopping criteria and the number of function evaluations are considered and measured only locally for $H_2$.
+We run both algorithms synchronously to assure that the algorithm $H_2$ is at no  ``unfair'' advantage over repeated experiments by receiving individuals from population which evolved faster due to many possible architecture--specific factors, e.g. uneven load balancing across processes.
+We gradually increase the parameter $p_1$ starting from $0.0$ up to $1.0$ by a step of $0.1$ and consider only two cases for the parameter $p_2$: 
 \begin{enumerate}
-    \item $p_2$ is always equal to 0 -- island DE$_2$ does not send any solutions to DE$_1$
-    \item $p_2$ is equal to $p_1$ -- island DE$_2$ will send solutions to DE$_1$ with the same probability
+    \item $p_2$ is always equal to $0.0$ -- $H_2$ does not send any solutions to $H_1$
+    \item $p_2$ is equal to $p_1$ -- $H_2$ sends solutions to $H_1$ with equal probability
 \end{enumerate}
-Figure~\ref{graph:twoisl} presents the experimental setup on a diagram.
+Finally, we test all nine combinations of pairs $(H_1, H_2)$ for three algorithms: DE, CMAES and PSO (see Figure~\ref{graph:twoisl}).
 \begin{figure}[ht!]
     \begin{tikzpicture}[scale=2.5]
     \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=24pt]
@@ -329,8 +330,8 @@ Figure~\ref{graph:twoisl} presents the experimental setup on a diagram.
     \tikzstyle{edge} = [draw,thick,->]
     \tikzstyle{edge2} = [draw,thick,-]
 
-    \node[vertex, dashed] (a) at (0, 0) {H$_1$};
-    \node[vertex] (b) at (1, 0) {H$_{2}$};
+    \node[vertex, dashed] (a) at (0, 0) {$H_1$};
+    \node[vertex] (b) at (1, 0) {$H_2$};
 
 
     \node[text width=4.3cm] at (2.1, 0.0) {%$H = \{\mbox{DE}, \mbox{CMAES}\}$\\
@@ -343,13 +344,9 @@ Figure~\ref{graph:twoisl} presents the experimental setup on a diagram.
 
     \end{tikzpicture}
     \label{graph:twoisl}
-    \caption{Two--island setup with both algorithms running synchronously and migrating with probabilities $p_1$ and $p_2$. We observe only the results of H$_2$.}
+    \caption{Two--island setup with both algorithms running synchronously and migrating with probabilities $p_1$ and $p_2$. We observe only the results of $H_2$.}
 
 \end{figure}
-In the following parts of this section we will focus on investigate the particular properties of several metaheurstics 
-
-\subsubsection{Differential Evolution (DE)}
-
 %\begin{table*}
 %    \label{table:pkvalues}
 %    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
@@ -361,34 +358,37 @@ In the following parts of this section we will focus on investigate the particul
 %    \end{tabular}
 %    \caption{Cooperation for DE}
 %\end{table*}
+We repeat the experiment for each configuration $1,000$ times with randomly initialized populations and resample from thus obtained distribution $10,000$ times using Algorithm~\ref{alg:resample} to simulate a ``restart'' strategy (see Algorithm~\ref{alg:resample}).
+We evaluate final performance of each configuration using the expected running time (Equation~\ref{eq:ert}).
 
-To present the key ideas of our methodology on an example, let us take a closer look on a setup with the algorithm DE optimizing the problem $f_7$, while being sent solutions from DE, CMAES and PSO.
-First, let us look at the distribution of running times of single and independent runs of CMAES, DE and PSO on problem $f_7$ (see Figure~\ref{fig:distr_cmaes_jde_7}).
-It is quite clear that on this particular problem, CMAES converges to global minimum much faster than DE, while PSO is significantly slower than the remaining two algorithms.
-Let us consider $H_1 = \mbox{DE}, H_2 = \mbox{DE}$, and analyze the change of the distribution of $H_2$ over varying parameters $p_1$ and $p_2$.
-Figure~\ref{fig:single_jde_jde_7} presents the distribution of $10,000$ resampled running times (approximated by a Gaussian kernel density estimation) as shown in Algorithm~\ref{alg:resample}.
+To present the key ideas of our methodology on an example, we fix $H_2=\mbox{DE}$ and optimize the problem $f_7$.
+Let us first consider $H_1 = \mbox{DE}$, and analyze the change of the distribution of $H_2$ over varying parameters $p_1$ and $p_2$.
+Figure~\ref{fig:single_jde_jde_7} presents the distribution of $10,000$ resampled running times approximated by a Gaussian kernel density estimation, and a change in the ERT.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\columnwidth]{figures/single_jde_jde_cec_7.png}
   \label{fig:single_jde_jde_7}
- \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{12}$.}
+ \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{7}$.}
 \end{figure}
 
-Two plots at the top present the case where $p_2 = 0$ (left), and $p_1 = p_2$ (right), describing the one--directional and two--directional migrations respectively (occasionally we will refer to latter as the \emph{feedback} case).
+Two plots at the top of Figure~\ref{fig:single_jde_jde_7} present the cases $p_2 = 0$ (left) and $p_1 = p_2$ (right).
 %For one--directional case, the migration has a positive effect, lowering the expected running time with the higher value    $p_1$ increases until migration every single generation ($p_1 = 1.0$).
-By allowing for migration with probability $p_1 = 0.1$ the mean shifts from $3,360$ to $3,100$ function evaluations, yet after the initial speedup the distribution and the expected running time change very little once $p_1 >= 0.3$.
-In the feedback scenario, not only we notice a significant speedup compared to one--directional case, but we observe a continuing trend with the improving expected running time until $p_1 = 1$ (migration every generation).
-This shows that migration, even when observed strictly from the perspective of the ``receiver'', is not a one--directional process, and can be reinforced by mutual information exchange.
+By setting migration probability $p_1 = 0.1$, the ERT shifts from $3,360$ to $3,100$ function evaluations, yet after the initial speedup very little change can be observed once $p_1 >= 0.3$.
+In the $p_2=p_1$ scenario, not only do we observe a significant speedup compared to the one--directional case, but the trend continues further until $p_1 = 0.8$.
+This suggests that migration, even when observed strictly from the perspective of the receiver, is not a one--directional process and can be reinforced by a mutual information exchange.
 
-Let us modify our experiment and instantiate the ``sending'' island with the algorithm CMAES ($H_1$).
-Both algorithms are run synchronously and as before we will monitor only the distribution and stopping criteria for population evolved by an instance of DE ($H_2$).
+Before we continue with instantiating the $H_1$ as CMAES and PSO, let us look at the running time distributions of independent runs of CMAES, DE and PSO on problem $f_7$ (see Figure~\ref{fig:distr_cmaes_jde_7}).
+It is quite clear that on this particular problem, CMAES converges to global minimum much faster than DE, while PSO is significantly slower than the other two algorithms.
+
+Let $H_1 = \mbox{CMAES}$.
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\columnwidth]{figures/single_distr_7.png}
     \label{fig:distr_cmaes_jde_9}
     \caption{Distribution of running times for algorithms CMA-ES and DE on problem $f_9$.}
 \end{figure}
-Not surprisingly, for one--directional injection from CMAES to DE (see Figure~\ref{fig:single_cmaes_jde_9}), we observe a significant improvement in the running time distribution (mean shift from $3,360$ to $2,120$).
+Not surprisingly, for one--directional migration from CMAES to DE (see Figure~\ref{fig:single_cmaes_jde_9}), we observe a significant improvement in the running time distribution (mean shift from $3,360$ to $2,120$).
+This follows intuitively from the Figure~\ref{fig:distr_cmaes_jde_9} -- CMAES is almost guaranteed to have better solutions to inject DE with before it converges.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\columnwidth]{figures/single_cmaes_jde_cec_7.png}
@@ -405,28 +405,30 @@ Finally, let us observe the scenario where $H_1 = \mbox{PSO}$.
   \label{fig:single_pso_jde_7}
  \caption{Running time behaviour of homogeneous 2--island DE/DE setup on problem $f_{12}$.}
 \end{figure}
-Since PSO has been shown to be much slower on this problem, the difference in the expected runtime for $p_2=0$ over varying $p_1$ is almost non--existent, while for $p_1=p_2$ we see a gradual ``recovery'' from $3,500$ to $2000$ function evaluations, which was the best expected running time of DE/DE setup.
+Since PSO has been shown to be much slower on this problem, the difference in the expected runtime for $p_2=0$ over varying $p_1$ is almost non--existent (DE converges before PSO).
+However, when $p_1=p_2$ we see a significant ``recovery'' from $3,500$ to $2,000$ function evaluations, which was the best expected running time of the DE/DE setup.
+Once again, even though PSO was considered a much slower algorithm, establishing a link from DE to PSO significantly improved the running time distribution on DE island.
 
-This leads us to the following observations:
+So far this leads us to the following observations, from the point of the receiving island:
 \begin{enumerate}
-    \item One--directional migration from $H_1$ can overall improve the performance of the $H_2$ (receiving algorithm) when the algorithm on $H_1$ is faster.
-    \item Feedback to the ``better'' algorithms has an overall benefit
-    \item Sending information to the ``worse'' algorithm, can 
+    \item One--directional migration from $H_1$ can overall improve the performance of $H_2$ when the algorithm on $H_1$ is comparable or faster in terms of expected convergence.
+    \item Feedback to the ``faster'' algorithm has a lesser, yet surprisingly positive effect, possibly due to the fact of having a larger variety of the genetic information which can be evolved faster by $H_1$ and then sent back to $H_2$.
+    \item Feedback to the ``slower'' algorithm can average--out the differences by reducing the rediscovery cost of $H_1$ and over time return even better solutions the $H_2$.
+        by injecting back a good solution, which reduces the ``rediscovery'' cost on the neighboring island,
 \end{enumerate}
 
-In the remainder of this section, and the following sections we will provide a similar analysis over several different algorithms for $H_1$, as well as larger number of problems.
+In the remainder of this section, we will provide a similar analysis over different algorithms for $H_2$ and  larger number of problems, as well as link our observations with the exploration--exploitation trade--off.
 
-For $H_1 =\mbox{DE}, H_2=\mbox{DE}$ and problems $f_1, f_4, f_6, f_7, f_9$ and $f_{13}$, we observe a very similar pattern: any migration is beneficial, with feedback significantly improving the overall running time with the increasing probability of migration.
+\subsubsection{Differential Evolution}
+This section supplements the previous detailed experiment by analyzing a larger pool of problems.
+For $H_1 =\mbox{DE}, H_2=\mbox{DE}$ and problems $f_1, f_4, f_6, f_7, f_9$ and $f_{13}$, we observe a pattern very similar to the DE/DE/$f_7$: any migration is beneficial, with feedback significantly improving the overall running time with the increasing probability of migration.
 Situation changes for more difficult multi--modal problems -- $f_{12}, f_{15}$ and $f_{16}$.
-For problems $f_{12}$ (Rastrigin) and $f_{16}$ (Katsuura) migration with feedback is still more beneficial yet full--migration is not the best strategy, while for problem $f_{15}$ (Schwefel) it is the one--directional case that achieves the lowest expected running time.
-SHOW SOME PLOTS HERE
+For problems $f_{12}$ (Rastrigin) and $f_{16}$ (Katsuura) migration with feedback is still more beneficial yet full--migration ($p_1=1.0$) is not the best strategy, while for problem $f_{15}$ (Schwefel) it is the one--directional case that achieves the lowest ERT.
+SHOW SOME PLOTS MOTHERFUCKER
 
-The case $H_1 = \mbox{PSO}, H_2=\mbox{DE}$ exhibits similar patterns to the previous case, except that absolute expected running times are much lower due to PSO being significantly slower on each of those problems.
+The case $H_1 = \mbox{PSO}, H_2=\mbox{DE}$ exhibits patterns similar to the previous case, except the absolute ERTs being lower due to PSO being significantly slower on each of those problems.
 For that reason the migration in one--directional setup has much a lesser effect on the running time SEE(pso jde cec 1).
 However, when $p_2 = p_1$ we notice that the running time of DE ``recovers'', even
-Another surprising 
-Another implication of 
-Another important fact is thatIt is worth noting yet another benefit of the feedback: 
 
 %This result motivates us to consider not only ``fully--connected'' topologies -- even in cases where one might think that better-suited algorithms might not benefit from the solutions from ``slower'' algorithms -- but also explore the space of asymmetrical migration parameters, i.e. $p_1 \neq p_2$.
 
@@ -490,6 +492,7 @@ To assess the performance of our setup we use the measure of expected number of 
 
 \begin{equation}
     \widehat{\mathbb{E}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s}}\right) B + \widehat{\mathbb{E}(T^s)},
+    \label{eq:ert}
 \end{equation}
 where $B$ is the allocated budget, $\widehat{p_s}$ is the estimated probability of successful run and $\widehat{\mathbb{E}(T^s)}$ is the estimated number of function evaluations of successful runs.
 
