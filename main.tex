@@ -318,8 +318,8 @@ To get a finer understanding of the effect of migration on individual algorithm,
 We run both algorithms synchronously to assure that the algorithm $H_2$ is at no  ``unfair'' advantage over repeated experiments by receiving individuals from population which evolved faster due to many possible architecture--specific factors, e.g. uneven load balancing across processes.
 We gradually increase the parameter $p_1$ starting from $0.0$ up to $1.0$ by a step of $0.1$ and consider only two cases for the parameter $p_2$: 
 \begin{enumerate}
-    \item $p_2$ is always equal to $0.0$ -- $H_2$ does not send any solutions to $H_1$
-    \item $p_2$ is equal to $p_1$ -- $H_2$ sends solutions to $H_1$ with equal probability
+    \item $H_2$ does not send any solutions to $H_1$ ($p_2 = 0.0$)
+    \item $H_2$ sends solutions to $H_1$ with equal probability ($p_1 = p_2$)
 \end{enumerate}
 Finally, we test all nine combinations of pairs $(H_1, H_2)$ for three algorithms: DE, CMAES and PSO (see Figure~\ref{graph:twoisl}).
 \begin{figure}[ht!]
@@ -363,7 +363,7 @@ We evaluate final performance of each configuration using the expected running t
 
 To present the key ideas of our methodology on an example, we fix $H_2=\mbox{DE}$ and optimize the problem $f_7$.
 Let us first consider $H_1 = \mbox{DE}$, and analyze the change of the distribution of $H_2$ over varying parameters $p_1$ and $p_2$.
-Figure~\ref{fig:single_jde_jde_7} presents the distribution of $10,000$ resampled running times approximated by a Gaussian kernel density estimation, and a change in the ERT.
+Figure~\ref{fig:single_jde_jde_7} presents the distribution of $10,000$ resampled running times approximated by a Gaussian kernel density estimation (top), and a change in the ERT (bottom).
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\columnwidth]{figures/single_jde_jde_cec_7.png}
@@ -411,13 +411,12 @@ Once again, even though PSO was considered a much slower algorithm, establishing
 
 So far this leads us to the following observations, from the point of the receiving island:
 \begin{enumerate}
-    \item One--directional migration from $H_1$ can overall improve the performance of $H_2$ when the algorithm on $H_1$ is comparable or faster in terms of expected convergence.
-    \item Feedback to the ``faster'' algorithm has a lesser, yet surprisingly positive effect, possibly due to the fact of having a larger variety of the genetic information which can be evolved faster by $H_1$ and then sent back to $H_2$.
+    \item One--directional migration from $H_1$ can improve the performance of $H_2$ when the algorithm on $H_1$ is comparable or faster in terms of expected running time.
+    \item Feedback to the ``faster'' algorithm can have a positive effect, possibly due to the fact of having a larger variety of the genetic information which can then be evolved faster by $H_1$ sent back to $H_2$.
     \item Feedback to the ``slower'' algorithm can average--out the differences by reducing the rediscovery cost of $H_1$ and over time return even better solutions the $H_2$.
-        by injecting back a good solution, which reduces the ``rediscovery'' cost on the neighboring island,
 \end{enumerate}
 
-In the remainder of this section, we will provide a similar analysis over different algorithms for $H_2$ and  larger number of problems, as well as link our observations with the exploration--exploitation trade--off.
+In the remainder of this section, we will provide a similar analysis over different algorithms for $H_2$ and a larger number of problems.
 
 \subsubsection{Differential Evolution}
 This section supplements the previous detailed experiment by analyzing a larger pool of problems.
