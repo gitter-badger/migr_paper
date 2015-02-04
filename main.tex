@@ -74,9 +74,9 @@ Daniel Hennes\\
 \begin{abstract}
 Metaheuristics have proven to be an efficient method of handling difficult global optimization tasks.
 State of art algorithms utilize several optimization techniques, allowing for occasional information exchange to leverage the trade-off between the exploration and exploitation.
-Besides the popularity of metaheuristics among the evolutionary strategies researchers, there is also an interest in exploring parallel models of computation.
+Besides the popularity of metaheuristics among the optimization communities, there is also growing interest in exploring parallel models of computation.
 In this paper we focus at both concepts and analyze the performance of the heterogeneous island models and the impact of the selected hyper-parameters on the optimization performance.
-We propose a methodology for characterizing the migration interplay between three metaheuristics, and evaluate the performance on real--parameter single objective optimization benchmarks.
+We propose a methodology for characterizing the migration interplay between three popular metaheuristics, and evaluate the performance on real--parameter single objective optimization benchmarks.
 %We observe a high sensitivity to both the frequency of migration and the migration strategies.
 
 %heterogeneous metaheuristics
@@ -93,8 +93,8 @@ We propose a methodology for characterizing the migration interplay between thre
 \keywords{Global Optimization, Evolutionary Algorithms, Island Model, Parallel Computing, Differential Evolution, Particle Swarm Optimization, CMA-ES}
 
 \section{Introduction}
-Search metaheuristics have been steadily growing in popularity over the recent years, mostly due to their performance in solving difficult optimization problems.
-Although several search techniques are shown to perform well in global optimization, no single algorithm can claim to be universal~\cite{wolpert1997no}.
+Search metaheuristics have been steadily growing in popularity over the recent years, mostly due to their performance in solving global optimization problems.
+Although several search techniques are shown to perform well across many problems, no single algorithm can claim to be universal~\cite{wolpert1997no}.
 Popular algorithms, such as Differential Evolution (DE)~\cite{storn1997differential}, Particle Swarm Optimization (PSO)~\cite{james1995particle} or Covariance Matrix Adaptation Evolutionary Strategy (CMA-ES)~\cite{hansen2001completely},~\cite{hansen2003reducing} are often used as the building blocks of more sophisticated strategies for leveraging the exploration--exploitation trade-off using hybridization~\cite{Liao:2013:CEC}, adaptiveness~\cite{qin2009differential} or multiple restarts~\cite{auger2005restart}.
 % TODO: Find example for PSO for either of those
 
@@ -102,242 +102,315 @@ Popular algorithms, such as Differential Evolution (DE)~\cite{storn1997different
 %memetic~\cite{Lacroix:2013:CEC}, hybridization~\cite{Liao:2013:CEC}, restart strategies~\cite{EPFL-CONF-191267}.
 
 % TODO: not increasing popular, its an old concept
-Parallel metaheuristics are increasingly popular, mainly due to the shift in the processor development industry towards the multiple-core architectures, as well as the higher availability and lowering costs of the distributed computing services and platforms.
+Parallel metaheuristics are increasingly popular, mainly due to the shift in the processor development industry towards the multiple-core architectures, as well as the higher availability and decreasing costs of the distributed computing services and platforms.
 Several approaches to parallelization were proposed in the past~\cite{cantu1998survey}.%TODO: Add more examples of parallelization
 In this paper we focus on the coarse-grained, multi-population parallelism known as the island model~\cite{cantu1999topologies}.
-With the high customization and flexibility of the island model come the increasing number of hyper--parameters, which are difficult due to the already complex model.
-One of the increasingly popular approaches is using several different metaheuristics on each island, and allowing for interplay between them in the form of migration.
-Although such heterogeneous setup in algorithm's parameters has been shown to be effective~\cite{jjmorelo2014pool},~\cite{gong2011}, the heterogeneity in terms of distinct metaheuristics has been only partially explored.
-The benefits of this type of hybridization in island model were reported only recently~\cite{izzo2012},~\cite{thiago2014}.
+With the high customization and flexibility of the island model come the increasing number of difficult to tune hyper--parameters.
+One increasingly popular approach to tackle this problem is using several different metaheuristics on a single archipelago and allow for the solution transfer between them.
+Although such heterogeneous setup in metaheurstic parameters has been shown to be effective~\cite{jjmorelo2014pool},~\cite{gong2011}, the heterogeneity in terms of distinct metaheuristics has been only partially explored, and the benefits of this type of hybridization were reported only recently~\cite{izzo2012},~\cite{thiago2014}.
 %best metaheuristics to interplay together in obtaining the final solution.
 %Fine-tuning parameters of the island model for given problem is cumbersome, thus a 
 % TODO: Find the bibtex for the Thiago guy
 
 In this work we focus on the hybridization in terms of distinct metaheuristics, and provide the performance analysis with respect to the migration operator.
-We propose a parametrization of migration rate and topology expressed in terms of migration probability, and investigate the interplay between selected hyper-parameters of the island model.
-We show that CRAZY STUFF HAPPENS BUT IT IS GOOD.
-%Structure of this paper is as follows
+We propose a parametrization of migration rate and topology expressed in terms of migration probability, and investigate the impact of selected hyper-parameters of the island model on the general performance of the setup.
+We propose a novel yet simple methodology for analysis of the effects of migration operator, and employ it to optimization algorithms: DE, PSO and CMAES.
+To evaluate performance of our setup, we provide a statistical analysis of the convergence times on selected problems from the CEC 2013 real--parameter optimization suite.
 
-\textbf{Add Motivation}
+\section{Motivation}
 
-\section{Experimental setup}
-This section covers the details of our experimental setup, i.e. used metaheuristics, problems, experimental variables and performance evaluation.
+Main driving factor behind this research is the better understanding of how migration, or injection of external information, effects various metaheuristics.
+While popular ``golden rules'' for migration frequency or migration rate are used in practice, the underlying reasons for many of those empirically--obtained choices are not understood.
+We design our experiment and methodology such that we can draw stronger conclusions on how migration influences the behaviour of certain algorithms.
+To get a finder understanding of the mechanisms behind the migration effects among different metaheuristics, we isolate a single island in a simple two--island setup and analyze its function evaluation distribution until convergence to global minima.
+In subsequent chapters we introduce a formal definition of our variant of island island model and give details on our experimental design.
+
+\section{Experimental Setup}
+This section covers the details of our experimental setup, i.e. parametrization of our model, used metaheuristics and problems, experimental variables, and performance evaluation methods.
+
+\subsection{Probabilistic Migration Model (PMM)}
+    We start with the description of our variant of island model, which aims to represent the parameters of the migration operator as a probabilistic ``Markov--Chain''--like stricture.
+    PMM described in this paper is in fact an island model, in which the concepts of \emph{topology} and \emph{migration rate} are unified in a single parametrization called \emph{migration probability}.
+    Migration rate $r$ and migration probability $p$ are two ways of parametrizing a single concept, i.e. the rate of information passing from one population to another.%TODO: (CITE TO Cantu PAZ about migration).
+    Although migration rate is a more popular parameterization, in this paper we will use the migration probability, as it allows for expressing ``fractional'' migration rates much easier, e.g. for $p=0.75$, we can expect on average to migrate in $3$ out of $4$ possible synchronization points, other than that $p$ and $r$ can be seen as reciprocals ($1/r \simeq p$).
+    In PMM, the probability of migration is dependent on the pair of populations exchanging the information.
+    This information can be stored as the weights in the directed acyclic graph of the model, thus replacing the global migration rate with a custom parameter determining the migration rate between any two populations.
+    For $n$ islands, the number of parameters modeling the probability of migration is equal to $n^2 - n$.
+    In reference to the island model, when $p_1=p_2=\ldots=p_{n^2-n}=c$ we obtain a fully--connected topology with the uniform ``migration rate'' equal to $\dfrac{1}{c}$ .
+    By setting some $m$ of those $n^2-n$ parameters to zero: $p_{k_1} = p_{k_2} = \ldots = p_{k_m} = 0$, we can obtain any other possible topology as zero probability of migration is essentially a non active link.
+    %Thus, PMM allows for more customization of the migration operator.
+
+    Because tuning such large space of parameters is very costly, we have to introduce a reduced parametrization of PMM.
+    We assume that the probability of migration (directed edge) between given two metaheuristics is the same across the model, i.e. any two populations $P_i, P_j$ optimized by algorithms $H_k, H_l$ respectively, have the same probability of migration from $P_i$ to $P_j$ (see Figure~\ref{fig:2-4setup}).
+    This depends the number of parameters only on the number of distinct metaheuristics, reducing the $n^2 - n$ to $k^2 + k$, where $k$ is the number of distinct metaheuristics and $n$ is the number of islands (in many practical cases $k \ll n$).
+
+    Since we assume that we do not distinguish between the migration operator parameters on each individual island level, but on the metaheuristic level, we can focus on analyzing the migration operator on ``pairwise reductions'' of the more complex models.
+    Pairwise reduction is simply a set of distinctive 2--island, 2--metaheuristic setups composing the full model.
+    Figure~\ref{fig:setups} presents two examples of PMM along with their pairwise reductions.
+    The main goal of our experiment is the analysis of such two--island setups for distinct metaheuristics, in an effort to draw more general conclusions applicable to more complex models.
+
+    %We propose a setup with two metaheuristics running in parallel and allow for migration of the best solutions every generation with some probability $p_k$.
+    %We execute our two--island model synchronously, and allow for migration steps (every single generation).
+
+    \begin{figure}[htp]
+    \centering
+    \subfigure[$2$--heuristic, $4$--island setup ($4$ parameters).]{
+        \label{fig:2-4setup}
+        \begin{tikzpicture}[scale=2.5]
+        \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
+        \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
+        \tikzstyle{weight} = [fill=white]
+        \tikzstyle{edge} = [draw,thick,->]
+        \tikzstyle{edge2} = [draw,thick,<->]
+
+        \node[vertex] (a) at (1, 1) {$H_2$};
+        \node[vertex] (b) at (0, 0) {$H_2$};
+        \node[vertex] (c) at (1, 0) {$H_2$};
+
+        \node[vertex] (d) at (0, 1) {$H_1$};
+
+        \path[edge2] (a) to[near end] node[weight]{$p_3,p_4$} (b) ;
+        \path[edge2] (c) to[near end] node[weight]{$p_1,p_2$} (d) ;
+        %\path[edge] (b) to[bend right=18] node[weight]{$p_1$} (a);
+        \path[edge] (a) to[bend right=18] node[weight]{$p_3$} (c) ;
+        \path[edge] (c) to[bend right=18] node[weight]{$p_4$} (a);
+        \path[edge] (b) to[bend right=18] node[weight]{$p_3$} (c);
+        \path[edge] (c) to[bend right=18] node[weight]{$p_4$} (b) ;
+
+        \path[edge] (a) to[bend right=18] node[weight]{$p_2$} (d) ;
+        \path[edge] (d) to[bend right=18] node[weight]{$p_1$} (a);
+
+        \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (d);
+        \path[edge] (d) to[bend right=18] node[weight]{$p_1$} (b) ;
+        \end{tikzpicture}
+    }\quad
+    \subfigure[$3$--heuristic, $3$--island setup ($6$ parameters).]{
+
+        \begin{tikzpicture}[scale=2.5]
+        \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
+        \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
+        \tikzstyle{weight} = [fill=white]
+        \tikzstyle{edge} = [draw,thick,->]
+        \tikzstyle{edge2} = [draw,thick,-]
+
+        \node[vertex] (a) at (0.3, 1) {$H_1$};
+        \node[vertex] (b) at (0, 0) {$H_2$};
+        \node[vertex] (c) at (1, 0.3) {$H_3$};
+
+        \path[edge] (a) to[bend right=18] node[weight]{$p_1$} (b) ;
+        \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (a);
+
+        \path[edge] (a) to[bend right=18] node[weight]{$p_3$} (c) ;
+        \path[edge] (c) to[bend right=18] node[weight]{$p_4$} (a);
+
+        \path[edge] (b) to[bend right=18] node[weight]{$p_5$} (c);
+        \path[edge] (c) to[bend right=18] node[weight]{$p_6$} (b) ;
+
+
+        \end{tikzpicture}
+    }\quad
+    \subfigure[Set of pairwise reductions of (c) above.]{
+
+        \begin{tikzpicture}[scale=2.5]
+        \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
+        \tikzstyle{invisible}=[draw,text=white,color=white,fill=white]
+        \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
+        \tikzstyle{weight} = [fill=white]
+        \tikzstyle{edge} = [draw,thick,->]
+        \tikzstyle{edge2} = [draw,thick,-]
+
+        \node[invisible] (i1) at (0.0, 0.0) {hi};
+        \node[invisible] (i1) at (1.0, 1.0) {hi};
+
+        \node[vertex] (a) at (0.3, 1) {$H_1$};
+        \node[vertex] (b) at (0.2, 0) {$H_2$};
+
+        \node[vertex] (c) at (0.8, 1) {$H_2$};
+        \node[vertex] (d) at (0.7, 0) {$H_2$};
+
+        \path[edge] (c) to[bend right=18] node[weight]{$p_3$} (d) ;
+        \path[edge] (d) to[bend right=18] node[weight]{$p_4$} (c);
+
+        \path[edge] (a) to[bend right=18] node[weight]{$p_1$} (b) ;
+        \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (a);
+
+        \end{tikzpicture}
+    }\quad
+    \subfigure[Set of pairwise reductions of (b) above.]{
+
+        \begin{tikzpicture}[scale=2.5]
+        \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
+        \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
+        \tikzstyle{weight} = [fill=white]
+        \tikzstyle{edge} = [draw,thick,->]
+        \tikzstyle{edge2} = [draw,thick,-]
+
+        \node[vertex] (a) at (0.1, 1) {$H_1$};
+        \node[vertex] (b) at (0, 0) {$H_2$};
+
+        \node[vertex] (c) at (0.6, 1) {$H_1$};
+        \node[vertex] (d) at (0.5, 0) {$H_3$};
+
+        \node[vertex] (e) at (1.1, 1) {$H_2$};
+        \node[vertex] (f) at (1, 0) {$H_3$};
+
+        \path[edge] (e) to[bend right=18] node[weight]{$p_5$} (f) ;
+        \path[edge] (f) to[bend right=18] node[weight]{$p_6$} (e);
+
+        \path[edge] (c) to[bend right=18] node[weight]{$p_3$} (d) ;
+        \path[edge] (d) to[bend right=18] node[weight]{$p_4$} (c);
+
+        \path[edge] (a) to[bend right=18] node[weight]{$p_1$} (b) ;
+        \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (a);
+
+        \end{tikzpicture}
+    }
+
+    \caption{Examples of PMM setups and their pairwise reductions.}
+    \label{fig:setups}
+    \end{figure}
+
+\subsection{Methodology}
+    In this chapter we describe the methodology used in our experiment.
+    We will first start with describing the details of our optimization procedure.
+
+    In our definition we use the following:
+    \begin{enumerate}
+        \item $f$ -- optimized problem
+        \item $P_1, P_2$ -- Evolved populations
+        \item $H_1, H_2$ -- Metaheuristics optimizing $P_1$ and $P_2$
+        \item $p_1, p_2$ -- Probability of migration from $P_1 \rightarrow P_2$ and $P_2 \rightarrow P_1$ respectively
+
+    \end{enumerate}
+
+    \begin{algorithm}
+    \caption{Main optimization procedure}
+    \label{alg:main_loop}
+    \begin{algorithmic}[1]
+        \Procedure{Optimize}{$f, P_1, P_2, H_1, H_2, p_1, p_2$}%\Comment{Single solution from population $P_1$ to $P_2$}
+        \State $P_1 \gets \Call{Initialize}{f}$
+        \State $P_2 \gets \Call{Initialize}{f}$
+        \Do
+            \State $P_1 \gets \Call{Evolve}{P_1, H_1, f)}$\Comment{Evolve $P_1$, using algorithm $H_2$, on a function $f$}
+            \State $P_2 \gets \Call{Evolve}{P_2, H_2, f)}$%\Comment{Evolve population $P$, on a function $f$, using algorithm $h(P)$}
+
+            \State $q_1 \sim U(0,1)$\Comment{Sample uniformly from $(0, 1)$}
+            \State $q_2 \sim U(0,1)$%\Comment{Sample uniformly from $(0, 1)$}
+            \If{$q_1 < p_1$}%\Comment{Migrate if passed the probability threshold $p_1$}\\
+                \State $P_2^* \gets \Call{Migrate}{P_1, P_2}$\Comment{Migrate $P_1 \rightarrow P_2$}
+            \EndIf
+            \If{$q_2 < p_2$}%\Comment{Migrate if passed the probability threshold $p_1$}\\
+                \State $P_1^* \gets \Call{Migrate}{P_2, P_1}$
+            \EndIf
+            \State $P_1 \gets P_1^*$
+            \State $P_2 \gets P_2^*$
+
+            \DoWhile{not $\Call{MeetsStopCriteria}{P_2}$}
+            %\State $f_0, FE \gets \Call{GetResults}{P_2}$\Comment{The best solution $f'$ and number of function evaluations $B'$}
+            \EndProcedure \mbox{ and }\Return $\Call{FEvals}{P_2}, \Call{Best}{P_2}$
+    \end{algorithmic}
+    \end{algorithm}
+    The migration algorithm which we use is based on the ``best--replace--worst'' idea (CITE HERE), i.e. the incoming solution, if better than the worst solution in the population, will take its place (see Algorithm~\ref{alg:migr_1}).
+    \begin{algorithm}
+    \caption{Migration algorithm}
+    \label{alg:migr_1}
+    \begin{algorithmic}[1]
+    \Procedure{Migrate}{$P_1,P_2$}\Comment{Migrate from $P_1$ to $P_2$}
+        \If{$\Call{Best}{P_1} < \Call{Worst}{P_2}$}\Comment{Assuming minimization}
+            \State $\Call{Worst}{P_2} \gets \Call{Best}{P_1}$
+        \EndIf
+    \EndProcedure
+    \end{algorithmic}
+    \end{algorithm}
+
+        %Main drawback of this idea is the possibility of duplicating solutions in the population.
+        %As long as $\Call{Worst}{P} > m$, the solution $m$ will be injected to population $P$.
+        %This creates a problem as it effectively diminishes the population size -- intuitively, there is little gain in having duplicated information occupying a slot in the population.
+        %We propose two variants of the algorithm~\ref{alg:migr_1} -- unique information filtering (Algorithm~\ref{alg:migr_3}) and fixed--index replacement (Algorithm~\ref{alg:migr_2}).
+        %First variant adds a condition to the migration, such that the migrant coming from the population $P_1$ has to be unique within the receiving population $P_2$.
+        %Verifying this condition introduces additional computational cost to the process.
+        %Second variant avoids the problem entirely by assigning a fixed position in the population for all migrant solutions.
+        %In such case the duplication is not possible, as the incoming duplicate $m$ would at most replace its previous instance at the fixed position.
+        %This prevents only the ``direct'' duplication through migration process, as the population $P_2$ is free to create duplicates of $m$ in the meantime.
+        %For this purpose we define a function $\Call{M-Idx}{P}$, which returns a reference to the ``migration'' slot in the population $P$.
+
+    \subsection{Methodology}
+
+    Since we treat each of the islands as a parallel computational unit, we assign a fixed budget of $20,000$ function evaluations for each of them.
+    We stop the execution if any of the following conditions are met:
+    \begin{enumerate}
+        \item A solution within $10^{-8}$ from the global optimum is found
+        \item The function evaluation budget is exhausted
+        \item A population converges to a non-optimal point, i.e.\ the difference between the best and worst solution in the population is smaller than $10^{-12}$
+    \end{enumerate}
+
+    We repeat the experiment $1,000$ times, obtaining a pool of independent runs, each of those could either be successful (condition 1 above) or unsuccessful (condition 2 or 3).
+    Each run can either a) find an optimal solution (successful run), b) exhaust the budget before arriving at a solution or c) converge to a local optimum (unsuccessful runs).
+
+    \begin{algorithm}
+    \caption{Resampling pool of runs $R$ within budget $B$}
+    \label{alg:resample}
+    \begin{algorithmic}[1]
+        \Function{Resample}{$R, B$}%\Comment{Pool $M$ and budget $B$}
+        \State $B' \gets 0$\Comment{Trial budget}
+        \State $f' \gets \infty$\Comment{Trial objective function value}
+        \Do
+            \State $f, n \gets \Call{SampleRun}{R}$%\Comment{Objective value $f$ and number of function evaluations $n$}
+            \State $B' \gets \mbox{max}(B' + n, B)$
+            \State $f' \gets \mbox{min}(f', f)$
+            \DoWhile{$B' < B \mbox{ and } (f' - f_{opt}) > 10^{-8}$}\Comment{Stop building a trial after budget is exhausted or found optimal solution}
+        \EndFunction \mbox{ and }\Return $f', B'$
+    \end{algorithmic}
+    \end{algorithm}
+
+    To assess the performance of our setup we use the measure of expected number of function evaluations and variance as proposed by Auger and Hansen in~\cite{Hansen05performanceevaluation}:
+
+    \begin{equation}
+        \widehat{\mathbb{E}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s}}\right) B + \widehat{\mathbb{E}(T^s)},
+        \label{eq:ert}
+    \end{equation}
+
+    \begin{equation}
+        \widehat{\mbox{Var}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s^2}}\right) B^2 + \widehat{\mbox{Var}(T^s)},
+        \label{eq:var}
+    \end{equation}
+    where $B$ is the allocated budget, $\widehat{p_s}$ is the estimated probability of a successful run and $\widehat{\mathbb{E}(T^s)}$ is the estimated number of function evaluations of successful runs.
 
 \subsection{Metaheuristics}
+    The topic of our study were three stochastic and population-based optimization metaheuristics~\footnote{Implementation of all algorithms used in this research can be found at \url{https://github.com/esa/pagmo}}.
+    In this section we briefly explain each of them.%TODO: Fix this sentence
 
-The topic of our study were three stochastic and population-based optimization metaheuristics.
-In this section we briefly explain each of them.%TODO: Fix this sentence
+    \subsubsection{Differential Evolution (DE)}
+    The Differential Evolution algorithm proposed by Storn and Price~\cite{storn1997differential} is a simple yet robust iterative search process.
+    The DE algorithm creates new individual by selecting a triple $\vec{x_1}, \vec{x_2}$ and $\vec{x_3}$ at random without replacement from the current population $P$, and computing:
+    %$$\vec{x_k} = F \cdot (\vec{x_1} - \vec{ + F \cdot (\vec{x_2} - \vec{x_3}),$$
+    $$\vec{x}_{i*}^{(t+1)} = \vec{x}_1^{(t)} + F \cdot (\vec{x}_2^{(t)} - \vec{x}_3^{(t)}),$$
+    with scaling factor $F=0.5$.
+    Solution $x_i^*$ replaces $x_i$ if $f(x_i^*) < f(x_i)$ (assuming minimization).
 
-\subsubsection{Differential Evolution (DE)}
-The Differential Evolution algorithm proposed by Storn and Price~\cite{storn1997differential} is a simple yet robust iterative search process.
-The DE algorithm creates new individual by selecting a triple $\vec{x_1}, \vec{x_2}$ and $\vec{x_3}$ at random without replacement from the current population $P$, and computing:
-%$$\vec{x_k} = F \cdot (\vec{x_1} - \vec{ + F \cdot (\vec{x_2} - \vec{x_3}),$$
-$$\vec{x}_{i*}^{(t+1)} = \vec{x}_1^{(t)} + F \cdot (\vec{x}_2^{(t)} - \vec{x}_3^{(t)}),$$
-with scaling factor $F=0.5$.
-Solution $x_i^*$ replaces $x_i$ if $f(x_i^*) < f(x_i)$ (assuming minimization).
+    \subsubsection{Covariance Matrix Adaptation Evolutionary Strategy (CMA-ES)}
 
-\subsubsection{Covariance Matrix Adaptation Evolutionary Strategy (CMA-ES)}
+    The CMA-ES proposed by Hansen et al.~\cite{hansen2001completely},~\cite{hansen2003reducing} optimizes the objective function by sampling $\lambda$ solutions ($i = 1,\ldots,\lambda)$ from the multivariate normal distribution:
+    $$x_i^{(t + 1)} = \textbf{m}^{(t)} + \sigma^{(t)} \cdot {\cal N}(0, {\cal C}^{(t)}),$$
 
-The CMA-ES proposed by Hansen et al.~\cite{hansen2001completely},~\cite{hansen2003reducing} optimizes the objective function by sampling $\lambda$ solutions ($i = 1,\ldots,\lambda)$ from the multivariate normal distribution:
-$$x_i^{(t + 1)} = \textbf{m}^{(t)} + \sigma^{(t)} \cdot {\cal N}(0, {\cal C}^{(t)}),$$
+    where $\textbf{m}^{(t)}$, ${\cal C}^{(t)}$ and $\sigma^{(t)}$ denote mean, covariance matrix and step-size of the distribution at time $t$.
+    Each generation, out of $\lambda$ newly sampled and evaluated individuals, $\mu$ best are used for updating the parameters of normal distribution.
 
-where $\textbf{m}^{(t)}$, ${\cal C}^{(t)}$ and $\sigma^{(t)}$ denote mean, covariance matrix and step-size of the distribution at time $t$.
-Out of $\lambda$ newly sampled and evaluated individuals, $\mu$ best are chosen and used for updating the parameters of the distribution.
+    \subsubsection{Particle Swarm Optimization (PSO)}
 
-\subsubsection{Particle Swarm Optimization (PSO)}
+    PSO is a bio-inspired stochastic search technique.
+    $$
+        x_i^{(t+1)} = x_i^{(t)} + v_i^{(t)},
+    $$
+    where the velocity $v_i^{(t)}$ is updated as
+    $$
+    v_i^{(t+1)} = w(v_i^{(t)}) + c_1 \cdot \theta\cdot(pbest(x_i^{(t)}) - x_i^{(t)}) + c_2 \cdot \theta\cdot(gbest(x_i^{(t)}) - x_i^{(t)}).
+    $$
 
-PSO is a bio-inspired stochastic search technique.
-$$
-    x_i^{(t+1)} = x_i^{(t)} + v_i^{(t)},
-$$
-where the velocity $v_i^{(t)}$ is updated as
-$$
-v_i^{(t+1)} = w(v_i^{(t)}) + c_1 \cdot \theta\cdot(pbest(x_i^{(t)}) - x_i^{(t)}) + c_2 \cdot \theta\cdot(gbest(x_i^{(t)}) - x_i^{(t)}).
-$$
 
 \subsection{Problems}
 
 We test each hyper-parametrization setup on selected rotated variants of \emph{Sphere}, \emph{Discus}, \emph{Rosenbrock}, \emph{Schaffer F7}, \emph{Rastrigin} and \emph{Schwefel} functions, as proposed in the CEC 2013 benchmark suite (functions $f_1$, $f_4$, $f_6$, $f_7$, $f_{12}$ and $f_{15}$ respectively)~\cite{liang2013problem}.
-
-\subsection{Heterogeneous Migration Model (HMM)}
-Heterogeneous migration model described in this paper is in fact an island model, in which the concepts of \emph{topology} and \emph{migration rate} are unified in a single parametrization called \emph{migration probability}.
-Migration rate $r$ and migration probability $p$ are two ways of parametrizing a single concept, i.e. the rate of information passing from one population to another (CITE TO Cantu PAZ about migration).
-Although migration rate is a more popular parameterization, in this paper we will use the migration probability, as it allows for expressing ``fractional'' migration rates, e.g. for $p=0.75$, we can expect on average to migrate in $3$ out of $4$ possible synchronization points.
-, and can be seen as reciprocals ($ 1/r \simeq p$).
-%We allow HMM to have a migration rate dependent on the pair of islands exchanging information.
-In HMM, probability of migration is dependent on the pair of populations exchanging the information.
-This information can be stored as the weights in the directed acyclic graph of the model, thus replacing the global migration rate with a custom parameter determining the migration rate between any two populations.
-For $n$ islands, the number of parameters modeling the probability of migration is equal to $n^2 - n$.
-In reference to the island model, when $p_1=p_2=\ldots=p_{n^2-n}=c$ we obtain a fully--connected topology with the uniform ``migration rate'' equal to $\dfrac{1}{c}$ .
-By setting some $m$ of those $n^2-n$ parameters to zero: $p_{k_1} = p_{k_2} = \ldots = p_{k_m} = 0$, we can obtain any other possible topology.
-%Thus, HMM allows for more customization of the migration operator.
-
-Because tuning such large space of parameters is very costly, we propose a reduced parametrization of HMM.
-We assume that the probability of migration (directed edge) between given two \textbf{metaheuristics} is the same across the model, i.e. any two populations $P_i, P_j$ optimized by algorithms $H_k, H_l$ respectively, have the same probability of migration from $P_i$ to $P_j$ (see Figure~\ref{fig:2-4setup}).
-This depends the number of parameters only on the number of distinct metaheuristics.
-
-%We propose a setup with two metaheuristics running in parallel and allow for migration of the best solutions every generation with some probability $p_k$.
-%We execute our two--island model synchronously, and allow for migration steps (every single generation).
-
-\begin{figure}[htp]
-\centering
-\subfigure[$2$--heuristic, $4$--island setup ($4$ parameters)]{
-    \label{fig:2-4setup}
-    \begin{tikzpicture}[scale=2.5]
-    \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
-    \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
-    \tikzstyle{weight} = [fill=white]
-    \tikzstyle{edge} = [draw,thick,->]
-    \tikzstyle{edge2} = [draw,thick,-]
-
-    \node[vertex] (a) at (1, 1) {$H_2$};
-    \node[vertex] (b) at (0, 0) {$H_2$};
-    \node[vertex] (c) at (1, 0) {$H_1$};
-    \node[vertex] (d) at (0, 1) {$H_1$};
-
-    \path[edge2] (a) to[near start] node[weight]{$p_1$} (b) ;
-    \path[edge2] (c) to[near end] node[weight]{$p_4$} (d) ;
-    %\path[edge] (b) to[bend right=18] node[weight]{$p_1$} (a);
-    \path[edge] (a) to[bend right=18] node[weight]{$p_2$} (c) ;
-    \path[edge] (c) to[bend right=18] node[weight]{$p_3$} (a);
-    \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (c);
-    \path[edge] (c) to[bend right=18] node[weight]{$p_3$} (b) ;
-
-    \path[edge] (a) to[bend right=18] node[weight]{$p_2$} (d) ;
-    \path[edge] (d) to[bend right=18] node[weight]{$p_3$} (a);
-
-    \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (d);
-    \path[edge] (d) to[bend right=18] node[weight]{$p_3$} (b) ;
-    \end{tikzpicture}
-}\quad
-\subfigure[$3$--heuristic, $3$--island setup ($6$ parameters)]{
-
-    \begin{tikzpicture}[scale=2.5]
-    \tikzstyle{vertex}=[draw,text=black,auto=left,circle,fill=white,minimum size=15pt]
-    \tikzstyle{vertexred}=[draw,text=black,auto=left,color=red,circle,fill=white,minimum size=15pt]
-    \tikzstyle{weight} = [fill=white]
-    \tikzstyle{edge} = [draw,thick,->]
-    \tikzstyle{edge2} = [draw,thick,-]
-
-    \node[vertex] (a) at (0.3, 1) {$H_1$};
-    \node[vertex] (b) at (0, 0) {$H_2$};
-    \node[vertex] (c) at (1, 0.3) {$H_3$};
-
-    \path[edge] (a) to[bend right=18] node[weight]{$p_3$} (c) ;
-    \path[edge] (c) to[bend right=18] node[weight]{$p_4$} (a);
-
-    \path[edge] (c) to[bend right=18] node[weight]{$p_5$} (b) ;
-    \path[edge] (b) to[bend right=18] node[weight]{$p_6$} (c);
-
-    \path[edge] (a) to[bend right=18] node[weight]{$p_1$} (b) ;
-    \path[edge] (b) to[bend right=18] node[weight]{$p_2$} (a);
-
-    \end{tikzpicture}
-}
-\caption{Examples of HMM setups}
-\label{fig:setups}
-\end{figure}
-
-In our definition we use the following:
-\begin{enumerate}
-    \item $f$ -- optimized problem
-    \item $\mathbb{P}$ -- A list of populations% instances with random initializations, in this paper we consider
-        %$2 \leq |\mathbb{P}| \leq 8$
-    \item $\mathbb{H}$ -- A list of metaheuristics, in this paper we consider
-        $$\mbox{Domain}(\mathbb{H}) = \{\mbox{DE}, \mbox{PSO}, \mbox{CMA-ES}\}$$
-    \item $h: \mathbb{P} \rightarrow \mathbb{H}$ -- an assignment of a metaheuristic to a population (many populations can be evolved by the same type of heuristic)
-    \item $M: \mathbb{H} \times \mathbb{H} \rightarrow [0, 1]$ -- mapping from a pair of metaheuristics to the probability of migration% and a real value ranging from 0 and 1, modeling the probability of migration
-
-\end{enumerate}
-
-\begin{algorithm}
-\caption{Main optimization procedure}
-\label{alg:main_loop}
-\begin{algorithmic}[1]
-    \Procedure{Optimize}{$f, \mathbb{P}, h, M$}%\Comment{Single solution from population $P_1$ to $P_2$}
-    \For{$P \in \mathbb{P}$}
-        \State $P \gets \Call{Initialize}{f}$
-    \EndFor
-    \Do
-        \For{$P \in \mathbb{P}$}
-            \State $P \gets \Call{Evolve}{P, f, h(P)}$\Comment{Evolve population $P$, on a function $f$, using algorithm $h(P)$}
-        \EndFor
-        \For{$P_i, P_j \in \mathbb{P} \times \mathbb{P}, i\neq j$}\Comment{For each possible pair of populations}
-            \State $x \sim U(0,1)$\Comment{Sample uniformly from $(0, 1)$}
-            \If{$x < M(h(P_i), h(P_j))$}\Comment{Migrate if passed the probability threshold}\\
-                \State $\Call{Migrate}{P_i, P_j}$
-            \EndIf
-        \EndFor
-        \DoWhile{not $\Call{MeetsStopCriteria}{\mathbb{P}}$}
-        \State $f_0, FE \gets \Call{GetResults}{\mathbb{P}}$\Comment{The best solution $f'$ and number of function evaluations $B'$}
-\EndProcedure \mbox{ and }\Return $f_0, FE$
-\end{algorithmic}
-\end{algorithm}
-The migration algorithm which we use is based on the ``best--replace--worst'' idea (CITE HERE), i.e. the incoming solution, if better than the worst solution in the population, will take its place (see Algorithm~\ref{alg:migr_1}).
-\begin{algorithm}
-\caption{Migration algorithm}
-\label{alg:migr_1}
-\begin{algorithmic}[1]
-\Procedure{Migrate}{$P_1,P_2$}\Comment{Migrate from $P_1$ to $P_2$}
-    \If{$\Call{Best}{P_1} < \Call{Worst}{P_2}$}\Comment{Assuming minimization}
-        \State $\Call{Worst}{P_2} \gets \Call{Best}{P_1}$
-    \EndIf
-\EndProcedure
-\end{algorithmic}
-\end{algorithm}
-
-    %Main drawback of this idea is the possibility of duplicating solutions in the population.
-    %As long as $\Call{Worst}{P} > m$, the solution $m$ will be injected to population $P$.
-    %This creates a problem as it effectively diminishes the population size -- intuitively, there is little gain in having duplicated information occupying a slot in the population.
-    %We propose two variants of the algorithm~\ref{alg:migr_1} -- unique information filtering (Algorithm~\ref{alg:migr_3}) and fixed--index replacement (Algorithm~\ref{alg:migr_2}).
-    %First variant adds a condition to the migration, such that the migrant coming from the population $P_1$ has to be unique within the receiving population $P_2$.
-    %Verifying this condition introduces additional computational cost to the process.
-    %Second variant avoids the problem entirely by assigning a fixed position in the population for all migrant solutions.
-    %In such case the duplication is not possible, as the incoming duplicate $m$ would at most replace its previous instance at the fixed position.
-    %This prevents only the ``direct'' duplication through migration process, as the population $P_2$ is free to create duplicates of $m$ in the meantime.
-    %For this purpose we define a function $\Call{M-Idx}{P}$, which returns a reference to the ``migration'' slot in the population $P$.
-
-\subsection{Methodology}
-
-Since we treat each of the islands as a parallel computational unit, we assign a fixed budget of $20,000$ function evaluations for each of them.
-We stop the execution if any of the following conditions are met:
-\begin{enumerate}
-    \item A solution within $10^{-8}$ from the global optimum is found
-    \item The function evaluation budget is exhausted
-    \item A population converges to a non-optimal point, i.e.\ the difference between the best and worst solution in the population is smaller than $10^{-12}$
-\end{enumerate}
-
-We repeat the experiment $1,000$ times, obtaining a pool of independent runs, each of those could either be successful (condition 1 above) or unsuccessful (condition 2 or 3).
-Each run can either a) find an optimal solution (successful run), b) exhaust the budget before arriving at a solution or c) converge to a local optimum (unsuccessful runs).
-
-\begin{algorithm}
-\caption{Resampling pool of runs $R$ within budget $B$}
-\label{alg:resample}
-\begin{algorithmic}[1]
-    \Function{Resample}{$R, B$}%\Comment{Pool $M$ and budget $B$}
-    \State $B' \gets 0$\Comment{Trial budget}
-    \State $f' \gets \infty$\Comment{Trial objective function value}
-    \Do
-        \State $f, n \gets \Call{SampleRun}{R}$%\Comment{Objective value $f$ and number of function evaluations $n$}
-        \State $B' \gets \mbox{max}(B' + n, B)$
-        \State $f' \gets \mbox{min}(f', f)$
-        \DoWhile{$B' < B \mbox{ and } (f' - f_{opt}) > 10^{-8}$}\Comment{Stop building a trial after budget is exhausted or found optimal solution}
-    \EndFunction \mbox{ and }\Return $f', B'$
-\end{algorithmic}
-\end{algorithm}
-
-To assess the performance of our setup we use the measure of expected number of function evaluations as proposed by Auger and Hansen in~\cite{Hansen05performanceevaluation}:
-
-\begin{equation}
-    \widehat{\mathbb{E}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s}}\right) B + \widehat{\mathbb{E}(T^s)},
-    \label{eq:ert}
-\end{equation}
-
-\begin{equation}
-    \widehat{\mbox{Var}(T)} = \left(\dfrac{1 - \widehat{p_s}}{\widehat{p_s^2}}\right) B^2 + \widehat{\mbox{Var}(T^s)},
-    \label{eq:var}
-\end{equation}
-where $B$ is the allocated budget, $\widehat{p_s}$ is the estimated probability of successful run and $\widehat{\mathbb{E}(T^s)}$ is the estimated number of function evaluations of successful runs.
 
 
 \subsection{Uniform migration experiment}
@@ -479,8 +552,8 @@ For $H_1 = \mbox{CMAES}$ we notice a very strong benefit of migration across all
 
 \subsubsection{Particle Swarm Optimization}
 
-This section presents the similar analysis of the setup for $H_2 = \mbox{PSO}$.
-For $H_1 = H_2 = \mbox{PSO}$ we find that migration ($p_1 >= 0.1, p_2=0$) is beneficial across all problems except the problems $f_4$ and $f_{16}$, where PSO did not converge to find any good solution, regardless of parameters $p_1$ and $p_2$.
+%This section presents the similar analysis of the setup for $H_2 = \mbox{PSO}$.
+For the setup $H_1 = H_2 = \mbox{PSO}$ we find that migration ($p_1 \geq 0.1, p_2=0$) is beneficial across all problems except the problems $f_4$ and $f_{16}$, where PSO did not converge to find any good solution, regardless of parameters $p_1$ and $p_2$.
 Once the feedback is introduced, we notice a significant improvement in the ERT for all problems, except $f_{15}$ where it varies across the parameter $p_1$.
 Based on those observations, we can note that PSO is in good cooperation with itself.
 When $H_1 = \mbox{JDE}$ we arrive at very similar pattern: migration helps across all problems (and is the only way for PSO to arrive at any solution for problem $f_4$) with feedback reinforcing the ERT, except for problem $f_{15}$ where it is strictly worse that the one--directional case (although it is still better than not migrating at all).
